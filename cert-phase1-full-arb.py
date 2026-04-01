@@ -299,7 +299,7 @@ def run_certificate():
                         )
                         # Certified monotone iff lower bound of interval > 0
                         monotone_certified = bool(dhdM_arb > 0)
-                        dhdM_display = float(dhdM_arb.mid)
+                        dhdM_display = float(dhdM_arb)
                     except Exception:
                         dhdM_arb = None
                         monotone_certified = False
@@ -321,7 +321,7 @@ def run_certificate():
                         lambda pv, _M=M, _d=d: compute_h_as_arb(_M, pv, _d),
                         mpf(p), mpf(H_STEP_P)
                     )
-                    dhdp_display = float(dhdp_arb.mid)
+                    dhdp_display = float(dhdp_arb)
                     abs_dhdp_arb = abs(dhdp_arb)
                     all_dhdp.append(abs(dhdp_display))
 
@@ -334,6 +334,7 @@ def run_certificate():
                 print(f"{d:>3} {p:>7.4f} {M:>6.1f}  "
                       f"{h_val:>14.6f} {h_upper:>14.6f} "
                       f"{dhdM_display:>12.6f} {dhdp_display:>12.6f}")
+                sys.stdout.flush()
 
     print()
     print("=" * 72)
@@ -367,11 +368,13 @@ def run_certificate():
     if not rows_M20_arb:
         sys.exit("ERROR: no M=20 grid points found.")
 
-    # Certified upper bound: use h_arb.mid + h_arb.rad as upper bound
-    # (flint.arb does not expose .upper() directly; mid + rad = interval upper)
+    # Certified upper bound via flint.arb.upper() (returns arb at right endpoint)
     def arb_upper(a):
         """Return certified upper bound of a flint.arb interval as flint.arb."""
-        return a.mid + abs(a.rad)
+        try:
+            return a.upper()
+        except AttributeError:
+            return a.mid() + abs(a.rad())
 
     h_upper_M20_arb_vals = [arb_upper(h_a) for (_, _, _, h_a) in rows_M20_arb]
     max_h_upper_M20_arb  = h_upper_M20_arb_vals[0]
@@ -445,7 +448,7 @@ def run_certificate():
 
         # Attempt float fallback summary for diagnostics
         max_h_upper_float = max(all_h_upper)
-        L_p_M20 = max(float(v.mid) for v in dhdp_arb_M20) if dhdp_arb_M20 else 0.0
+        L_p_M20 = max(float(v) for v in dhdp_arb_M20) if dhdp_arb_M20 else 0.0
         p_corr_float = L_p_M20 * DELTA_P / 2
         cert_float = max_h_upper_float + p_corr_float
         print(f"  Float fallback: max_h_upper(M=20) = {max_h_upper_float:.8f}, "

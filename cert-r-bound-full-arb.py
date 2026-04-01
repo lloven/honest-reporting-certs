@@ -130,7 +130,7 @@ def arb_abs_upper(a):
         pass
     # Fallback: midpoint + radius
     try:
-        return float(abs_a.mid) + float(abs_a.rad)
+        return float(abs_a.mid()) + float(abs_a.rad())
     except AttributeError:
         pass
     # Last resort: conservative float conversion
