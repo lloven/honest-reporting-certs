@@ -23,47 +23,75 @@ Tested with mpmath 1.3.0 and python-flint 0.7.x (which provides `flint.arb`).
 
 ## Script overview
 
+Two pipelines are provided: the original two-step pipeline and a self-contained
+Level-1 Arb upgrade. Use the `*-full-arb.py` scripts for the strongest guarantees.
+
+### Level-1 Arb scripts (recommended)
+
 | Script | Purpose | Theorem |
 |---|---|---|
-| `cert-r-bound-arb.py` | Compute R(M,p,d) on a 510-point grid with Richardson derivatives; issue R-bound certificate | Thm 5.1 |
-| `cert-phase1-arb.py` | Compute h = d²log I_L/dM² on a 140-point grid with Richardson derivatives | Thm 4.8 (data) |
+| `cert-r-bound-full-arb.py` | R-bound certificate with Richardson derivatives computed entirely in certified `flint.arb` arithmetic | Thm 5.1 |
+| `cert-phase1-full-arb.py` | Residual certificate, self-contained: Arb Richardson certifies dh/dM > 0 at each grid point; monotone argument and certificate bound all in Arb | Thm 4.8 |
+
+### Original pipeline (for reference / comparison)
+
+| Script | Purpose | Theorem |
+|---|---|---|
+| `cert-r-bound-arb.py` | Compute R(M,p,d) on a 510-point grid with Richardson derivatives (50-digit float); issue R-bound certificate | Thm 5.1 |
+| `cert-phase1-arb.py` | Compute h = d²log I_L/dM² on a 140-point grid (50-digit float) | Thm 4.8 (data) |
 | `apply-interval-cert.py` | Post-process `cert-r-bound-arb.py` output; apply interval-wise local Lipschitz bound | Thm 5.1 |
 | `apply-monotone-cert-phase1.py` | Post-process `cert-phase1-arb.py` output; apply monotone-increase certificate | Thm 4.8 |
+
+### What "Level-1 Arb" means
+
+In the original scripts, Richardson stencil evaluations return 50-digit `mpmath` floats.
+The `*-full-arb.py` scripts instead convert each `mpmath quad(error=True)` result into
+a `flint.arb` ball (midpoint = quadrature value, radius = quadrature error estimate), then
+perform Richardson entirely in `flint.arb` arithmetic. The Lipschitz constant at each grid
+point is therefore a **certified Arb upper bound**, not a floating-point approximation.
+
+Remaining gap: the Lipschitz constants are certified at discrete grid points; continuity
+between grid points is assumed. The ≥20% safety margins make this negligible in practice.
 
 ---
 
 ## How to reproduce the certificates
 
-### Theorem 5.1 (R-bound, ~4–6 hours)
+### Recommended: Level-1 Arb scripts (self-contained)
 
 ```bash
-python cert-r-bound-arb.py | tee cert-r-bound.output
-# The script itself prints the final certificate at the end.
-# If you need to re-apply the interval-wise certificate separately:
-python apply-interval-cert.py cert-r-bound.output
+# Theorem 5.1 (~4–6 hours)
+python cert-r-bound-full-arb.py | tee cert-r-bound-full.output
+
+# Theorem 4.8 (~2–3 hours)
+python cert-phase1-full-arb.py | tee cert-phase1-full.output
 ```
 
-Expected terminal output (last lines):
+Expected output from `cert-r-bound-full-arb.py` (last lines):
 ```
-CERTIFICATE: R(M,p,d) < 0.7974 < 1
+CERTIFICATE [L1 Arb-certified]: R(M,p,d) < 0.7974 < 1
   for ALL d in {2,3,4}, p in (d,d+1), M in [1.001,20].
-  Final margin from 1: 0.2026 (20.3%)
 ```
 
-### Theorem 4.8 (Residual certificate, ~2–3 hours)
+Expected output from `cert-phase1-full-arb.py` (last lines):
+```
+CERTIFICATE PASSED (L1 Arb): d²log I_L/dM² < [cert_bound] < 0
+for d in {3,4}, p in (d,d+1), M in [2,20].
+```
+
+### Alternative: original two-step pipeline
 
 ```bash
-python cert-phase1-arb.py | tee cert-phase1.output
-# NOTE: cert-phase1-arb.py may print "CERTIFICATE FAILED" in its own
-# summary (see note in the script docstring). This is expected.
-# The valid certificate uses the monotone-increase argument:
-python apply-monotone-cert-phase1.py cert-phase1.output
-```
+# Theorem 5.1
+python cert-r-bound-arb.py | tee cert-r-bound.output
+# (optional: re-apply certificate separately)
+python apply-interval-cert.py cert-r-bound.output
 
-Expected terminal output from `apply-monotone-cert-phase1.py` (last lines):
-```
-CERTIFICATE PASSED: d²log I_L/dM² <= -0.009294 < 0
-for d in {3,4}, p in (d,d+1), M in [2,20].
+# Theorem 4.8
+python cert-phase1-arb.py | tee cert-phase1.output
+# NOTE: cert-phase1-arb.py may print "CERTIFICATE FAILED" — this is expected.
+# The valid certificate uses the monotone-increase post-processor:
+python apply-monotone-cert-phase1.py cert-phase1.output
 ```
 
 ---
