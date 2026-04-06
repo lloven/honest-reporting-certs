@@ -1,5 +1,7 @@
 # true-kl0-certificates
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19435617.svg)](https://doi.org/10.5281/zenodo.19435617)
+
 Numerical certificates for the paper:
 
 > **Honest Reporting in Scored Oversight: The True-KL₀ Property via the Prékopa Principle**
@@ -134,6 +136,14 @@ The certificates are **semi-rigorous**:
   journal = {Annals of Applied Probability},
   year    = {2026},
   note    = {Submitted}
+}
+
+@software{Loven2026certs,
+  author  = {Lov\'{e}n, Lauri},
+  title   = {true-kl0-certificates},
+  year    = {2026},
+  doi     = {10.5281/zenodo.19435617},
+  url     = {https://doi.org/10.5281/zenodo.19435617}
 }
 ```
 
